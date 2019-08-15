@@ -3,7 +3,7 @@
 CFLAGS = -O2 -std=c++11 -g
 
 # if cuda device, cuda lib, or cuDNN is not installed, disable the following line
-# ENABLE_CUDNN = -D__CUDNN__
+#ENABLE_CUDNN = -D__CUDNN__
 
 #DFLAGS = -D__DEBUG__
 
@@ -81,8 +81,8 @@ $(WICWIU_LIB): $(WICWIU_SRC) $(WICWIU_CUDA_SRCS)
 	make -C ../..
 
 clean:
-	rm -rf *.o main.exe
+	rm -rf *.o main
 
 clean_all:
-	rm -rf *.o main.exe
+	rm -rf *.o main
 	make clean -C ../..

@@ -558,7 +558,7 @@ template<typename DTYPE> int Module<DTYPE>::SaveComponents(char *nameOfDir) {
     char filename[256];
 
     if (access(nameOfDir, 00) == -1) {
-        if (mkdir(nameOfDir) == -1) {
+        if (mkdir(nameOfDir,0755) == -1) {
             printf("mkdir fail\n");
             exit(-1);
         }

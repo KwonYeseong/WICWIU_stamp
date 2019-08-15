@@ -4,21 +4,18 @@
 #include <vector>
 #include <queue>
 #include <ctime>
-#include <cstdlib>
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <conio.h>
 #include <string.h>
-#include <iomanip>
 #include <string>
-#include <Windows.h>
 
 #include "../../WICWIU_src/Tensor.hpp"
 
 using namespace std;
 
-#define O_listFile "./data/O/O_list.txt"
-#define X_listFile "./data/X/X_list.txt"
+#define O_listFile "../../../OX/O/O_list.txt"
+#define X_listFile "../../../OX/X/X_list.txt"
 #define NUMBER_OF_O 1343
 #define NUMBER_OF_X 882
 #define NUMBER_OF_TRAIN_IMAGE 1558
@@ -28,14 +25,48 @@ using namespace std;
 #define HEIGHT 30
 #define NUMBER_OF_CLASS 2
 
+#define BYTE unsigned char
+#define DWORD int
+#define WORD unsigned short
+#define LONG int
+
+#pragma pack(push,1)
+
+typedef struct tagBITMAPFILEHEADER {
+    short bfType;       
+    int   bfSize;       
+    short bfReserved1;
+    short bfReserved2;
+    int   bfOffBits;    
+} BITMAPFILEHEADER;
+
+typedef struct tagBITMAPINFOHEADER{
+    DWORD biSize;          //현 구조체의 크기
+    LONG biWidth;          //이미지의 가로 크기
+    LONG biHeight;         //이미지의 세로 크기
+    WORD biPlanes;         //플레인수
+    WORD biBitCount;       //비트 수
+    DWORD biCompression;   //압축 유무
+    DWORD biSizeImage;     //이미지 크기
+    LONG biXPelsPerMeter;  //미터당 가로 픽셀
+    LONG biYPelsPerMeter;  //미터당 세로 픽셀
+    DWORD biClrUsed;       //컬러 사용 유무
+    DWORD biClrImportant;  //중요하게 사용하는 색
+}BITMAPINFOHEADER;
+
+typedef struct tagRGBQUAD {
+    BYTE   rgbBlue;
+    BYTE   rgbGreen;
+    BYTE   rgbRed;
+    BYTE   rgbReserved;
+}  RGBQUAD;
+
+#pragma pack(pop)
 
 template <typename DTYPE>
-class BMPDataSet
-{
+class BMPDataSet{
 private:
     int m_batchSize;
-    DTYPE m_aMean[1] = {0.5};
-    DTYPE m_aStddev[1] = {0.5};
 
     vector<char *> m_imageNameList;
     vector<int> m_imageNumber;
@@ -50,12 +81,11 @@ private:
     queue<Tensor<DTYPE> *> *m_aaSetOfLabelForConcatenate; // size : batch size
 
     // Storage for preprocessed Tensor
-    queue<Tensor<DTYPE> **> *m_aaQForTrainData; // buffer Size is independently define here
+    queue<Tensor<DTYPE> **> *m_aaQForTrainData; 
     queue<Tensor<DTYPE> **> *m_aaQForTestData;
 
 public:
-    BMPDataSet(int batchSize)
-    {
+    BMPDataSet(int batchSize){
         m_batchSize = batchSize;
 
         Alloc();
@@ -63,33 +93,27 @@ public:
         GetDataList();
     }
 
-    virtual ~BMPDataSet()
-    {
+    virtual ~BMPDataSet(){
         Delete();
     }
 
-    void Alloc()
-    {
-        m_aaSetOfImage = new queue<Tensor<DTYPE> *>(); // Each tensor shows single image
+    void Alloc(){
+        m_aaSetOfImage = new queue<Tensor<DTYPE> *>(); 
         m_aaSetOfLabel = new queue<Tensor<DTYPE> *>();
 
-        m_aaSetOfImageForConcatenate = new queue<Tensor<DTYPE> *>(); // Each tensor shows single image
+        m_aaSetOfImageForConcatenate = new queue<Tensor<DTYPE> *>(); 
         m_aaSetOfLabelForConcatenate = new queue<Tensor<DTYPE> *>();
 
         m_aaQForTrainData = new queue<Tensor<DTYPE> **>();
         m_aaQForTestData = new queue<Tensor<DTYPE> **>();
     }
 
-    void Delete()
-    {
-        if (m_aaSetOfImage)
-        {
-            if (m_aaSetOfImage->size() != 0)
-            {
+    void Delete() {
+        if (m_aaSetOfImage){
+            if (m_aaSetOfImage->size() != 0){
                 int numOfTensor = m_aaSetOfImage->size();
 
-                for (int i = 0; i < numOfTensor; i++)
-                {
+                for (int i = 0; i < numOfTensor; i++){
                     delete m_aaSetOfImage->front();
                     m_aaSetOfImage->front() = NULL;
                     m_aaSetOfImage->pop();
@@ -99,14 +123,11 @@ public:
             m_aaSetOfImage = NULL;
         }
 
-        if (m_aaSetOfLabel)
-        {
-            if (m_aaSetOfLabel->size() != 0)
-            {
+        if (m_aaSetOfLabel){
+            if (m_aaSetOfLabel->size() != 0){
                 int numOfTensor = m_aaSetOfLabel->size();
 
-                for (int i = 0; i < numOfTensor; i++)
-                {
+                for (int i = 0; i < numOfTensor; i++){
                     delete m_aaSetOfLabel->front();
                     m_aaSetOfLabel->front() = NULL;
                     m_aaSetOfLabel->pop();
@@ -116,14 +137,11 @@ public:
             m_aaSetOfLabel = NULL;
         }
 
-        if (m_aaSetOfImageForConcatenate)
-        {
-            if (m_aaSetOfImageForConcatenate->size() != 0)
-            {
+        if (m_aaSetOfImageForConcatenate){
+            if (m_aaSetOfImageForConcatenate->size() != 0){
                 int numOfTensor = m_aaSetOfImageForConcatenate->size();
 
-                for (int i = 0; i < numOfTensor; i++)
-                {
+                for (int i = 0; i < numOfTensor; i++){
                     delete m_aaSetOfImageForConcatenate->front();
                     m_aaSetOfImageForConcatenate->front() = NULL;
                     m_aaSetOfImageForConcatenate->pop();
@@ -133,14 +151,11 @@ public:
             m_aaSetOfImageForConcatenate = NULL;
         }
 
-        if (m_aaSetOfLabelForConcatenate)
-        {
-            if (m_aaSetOfLabelForConcatenate->size() != 0)
-            {
+        if (m_aaSetOfLabelForConcatenate){
+            if (m_aaSetOfLabelForConcatenate->size() != 0){
                 int numOfTensor = m_aaSetOfLabelForConcatenate->size();
 
-                for (int i = 0; i < numOfTensor; i++)
-                {
+                for (int i = 0; i < numOfTensor; i++){
                     delete m_aaSetOfLabelForConcatenate->front();
                     m_aaSetOfLabelForConcatenate->front() = NULL;
                     m_aaSetOfLabelForConcatenate->pop();
@@ -150,14 +165,11 @@ public:
             m_aaSetOfLabelForConcatenate = NULL;
         }
 
-        if (m_aaQForTrainData)
-        {
-            if (m_aaQForTrainData->size() != 0)
-            {
+        if (m_aaQForTrainData){
+            if (m_aaQForTrainData->size() != 0){
                 int numOfTensor = m_aaQForTrainData->size();
 
-                for (int i = 0; i < numOfTensor; i++)
-                {
+                for (int i = 0; i < numOfTensor; i++){
                     Tensor<DTYPE> **temp = m_aaQForTrainData->front();
                     m_aaQForTrainData->pop();
                     delete temp[0];
@@ -170,14 +182,11 @@ public:
             m_aaQForTrainData = NULL;
         }
 
-        if (m_aaQForTestData)
-        {
-            if (m_aaQForTestData->size() != 0)
-            {
+        if (m_aaQForTestData){
+            if (m_aaQForTestData->size() != 0){
                 int numOfTensor = m_aaQForTestData->size();
 
-                for (int i = 0; i < numOfTensor; i++)
-                {
+                for (int i = 0; i < numOfTensor; i++){
                     Tensor<DTYPE> **temp = m_aaQForTestData->front();
                     m_aaQForTestData->pop();
                     delete temp[0];
@@ -191,8 +200,7 @@ public:
         }
     }
 
-    void CreateDataNumber()
-    {
+    void CreateDataNumber(){
         for (int i = 0; i < NUMBER_OF_O + NUMBER_OF_X; i++)
             m_imageNumber.push_back(i);
 
@@ -205,20 +213,16 @@ public:
             m_TestImageIdx.push_back(m_imageNumber[i + NUMBER_OF_TRAIN_IMAGE]);
     }
 
-    void GetDataList()
-    {
+    void GetDataList(){
         FILE *O_fp = fopen(O_listFile, "r");
         char strTemp[255];
         char *pStr;
 
-        if (O_fp != NULL)
-        {
-            while (!feof(O_fp))
-            {
+        if (O_fp != NULL){
+            while (!feof(O_fp)){
                 pStr = fgets(strTemp, sizeof(strTemp), O_fp);
                 char *temp = (char *)malloc(sizeof(char) * 50);
-                if (pStr)
-                {
+                if (pStr){
                     strcpy(temp, pStr);
                     for (int i = 0; i < strlen(temp); i++)
                         if (temp[i] == '\n')
@@ -228,20 +232,16 @@ public:
                 }
             }
         }
-        else
-        {
-            printf("file open fail\n");
+        else{
+            printf("file list open fail\n");
         }
 
         FILE *X_fp = fopen(X_listFile, "r");
-        if (X_fp != NULL)
-        {
-            while (!feof(X_fp))
-            {
+        if (X_fp != NULL){
+            while (!feof(X_fp)){
                 pStr = fgets(strTemp, sizeof(strTemp), X_fp);
                 char *temp = (char *)malloc(sizeof(char) * 50);
-                if (pStr)
-                {
+                if (pStr){
                     strcpy(temp, pStr);
                     for (int i = 0; i < strlen(temp); i++)
                         if (temp[i] == '\n')
@@ -251,82 +251,66 @@ public:
                 }
             }
         }
-        else
-        {
-            printf("file open fail\n");
+        else{
+            printf("file list open fail\n");
         }
-
-        // for (int i = 0; i < m_imageNameList.size(); i++)
-        // {
-        //     printf("%s", m_imageNameList[i]);
-        //     if (i == NUMBER_OF_O - 1)
-        //         printf("X-List from now!\n");
-        // }
-        // printf("size :%d", m_imageNameList.size());
 
         fclose(O_fp);
         fclose(X_fp);
     }
 
     //image 1개를 읽어드리는
-    Tensor<DTYPE> *Image2Tensor(char *imageDir)
-    {
+    Tensor<DTYPE> *Image2Tensor(char *imageDir){
         FILE *input;
         unsigned char *bmp;
         long size;
-
         Tensor<DTYPE> *temp = Tensor<DTYPE>::Zeros(1, 1, 1, WIDTH, HEIGHT);
 
         input = fopen(imageDir, "rb");
-        if (input == NULL)
-        {
+        if (input == NULL){
             printf("Can not open the file\n");
             cout << imageDir << endl;
         }
-        fseek(input, 0, SEEK_END); // 파일 끝
-        size = ftell(input);       // 파일 크기
-        rewind(input);             // 파일 되돌리기
+        fseek(input, 0, SEEK_END); 
+        size = ftell(input);       
+        rewind(input);             
 
-        bmp = new unsigned char[size]; // 메모리 확보
-        fread(bmp, 1, size, input);    // 파일 읽기
+        bmp = new unsigned char[size]; 
+        int dum = fread(bmp, 1, size, input);    
         fclose(input);
 
-        // 구조
+        
         BITMAPFILEHEADER *bf = (BITMAPFILEHEADER *)bmp;
         BITMAPINFOHEADER *bi = (BITMAPINFOHEADER *)(bmp + sizeof(*bf));
-        RGBQUAD *gr = (RGBQUAD *)(bmp + sizeof(*bf) + sizeof(*bi)); // 팔레트
-        unsigned char *img = bmp + bf->bfOffBits;                   // 이미지 데이터
+        RGBQUAD *gr = (RGBQUAD *)(bmp + sizeof(*bf) + sizeof(*bi)); 
+        unsigned char *img = bmp + bf->bfOffBits;                   
 
-        // 에러처리
-        if (bf->bfType != 0x4D42)
-        {
+        
+        if (bf->bfType != 0x4D42){
             printf("Not bitmap file!");
         }
-        if (bi->biBitCount != 8)
-        {
+        if (bi->biBitCount != 8){
             printf("Bad file format!");
         }
 
-        // 이미지 한 줄에 해당하는 바이트 구하기(4 의 배수로 맞춤)
+        
         int w = bi->biWidth;
         if (w % 4)
             w += 4 - bi->biWidth % 4;
 
-        // 이미지를 8 비트로 저장
-        float bmptxt[WIDTH][HEIGHT]; // 크기를 이미지에 맞출 것
+        
+        float bmptxt[WIDTH][HEIGHT]; 
         unsigned char B, G, R;
         int p;
 
         // 배열에 저장
-        for (int i = 0; i < bi->biHeight; i++)
-        {
-            for (int j = 0; j < bi->biWidth; j++)
-            {
+        for (int i = 0; i < bi->biHeight; i++){
+            for (int j = 0; j < bi->biWidth; j++){
                 p = img[(bi->biHeight - i - 1) * w + j];
                 B = gr[p].rgbBlue;
                 G = gr[p].rgbGreen;
                 R = gr[p].rgbRed;
-                bmptxt[i][j] = (((114 * R + 587 * G + 299 * B) / 1000) / 255.0);
+                bmptxt[i][j] = (((114 * R + 587 * G + 299 * B) / 1000) / 255.0) ;
                 (*temp)[Index5D(temp->GetShape(), 0, 0, 0, j, i)] = bmptxt[i][j];
                 // printf("%.3f ", bmptxt[i][j]);
             }
@@ -337,46 +321,13 @@ public:
         return temp;
     }
 
-    Tensor<DTYPE> *Normalization(Tensor<DTYPE> *image)
-    {
-        int numOfChannel = NUMBER_OF_CHANNEL;
-        int heightOfImg = HEIGHT;
-        int widthOfImg = WIDTH;
-        int planeSizeOfImage = HEIGHT * WIDTH;
-
-        int heightOfTensor = heightOfImg;
-        int widthOfTensor = widthOfImg;
-        int planeSizeOfTensor = heightOfTensor * widthOfTensor;
-
-        int idx = 0;
-        int idxOfMeanAdnStddev = 0;
-
-        for (int channelNum = 0; channelNum < numOfChannel; channelNum++)
-        {
-            for (int heightIdx = 0; heightIdx < heightOfImg; heightIdx++)
-            {
-                for (int widthIdx = 0; widthIdx < widthOfImg; widthIdx++)
-                {
-                    idx = channelNum * planeSizeOfTensor + (heightIdx)*widthOfTensor + (widthIdx);
-                    idxOfMeanAdnStddev = channelNum * planeSizeOfImage + heightIdx * widthOfImg + widthIdx;
-                    (*image)[idx] -= m_aMean[channelNum];
-                    (*image)[idx] /= m_aStddev[channelNum];
-                }
-            }
-        }
-
-        return image;
-    }
-
-    Tensor<DTYPE> *Label2Tensor(int classNum /*Address of Label*/)
-    {
+    Tensor<DTYPE> *Label2Tensor(int classNum){
         Tensor<DTYPE> *temp = Tensor<DTYPE>::Zeros(1, 1, 1, 1, NUMBER_OF_CLASS);
         (*temp)[classNum] = (DTYPE)1;
         return temp;
     }
 
-    Tensor<DTYPE> *ConcatenateImage(queue<Tensor<DTYPE> *> *setOfImage)
-    {
+    Tensor<DTYPE> *ConcatenateImage(queue<Tensor<DTYPE> *> *setOfImage){
         int singleImageSize = setOfImage->front()->GetCapacity();
 
         Tensor<DTYPE> *result = Tensor<DTYPE>::Zeros(1, m_batchSize, 1, 1, singleImageSize);
@@ -398,18 +349,15 @@ public:
         return result;
     }
 
-    Tensor<DTYPE> *ConcatenateLabel(queue<Tensor<DTYPE> *> *setOfLabel)
-    {
+    Tensor<DTYPE> *ConcatenateLabel(queue<Tensor<DTYPE> *> *setOfLabel){
         Tensor<DTYPE> *result = Tensor<DTYPE>::Zeros(1, m_batchSize, 1, 1, NUMBER_OF_CLASS);
         Tensor<DTYPE> *singleLabel = NULL;
 
-        for (int batchNum = 0; batchNum < m_batchSize; batchNum++)
-        {
+        for (int batchNum = 0; batchNum < m_batchSize; batchNum++){
             singleLabel = setOfLabel->front();
             setOfLabel->pop();
 
-            for (int idxOfLabel = 0; idxOfLabel < NUMBER_OF_CLASS; idxOfLabel++)
-            {
+            for (int idxOfLabel = 0; idxOfLabel < NUMBER_OF_CLASS; idxOfLabel++){
                 int idxOfResult = batchNum * NUMBER_OF_CLASS + idxOfLabel;
                 (*result)[idxOfResult] = (*singleLabel)[idxOfLabel];
             }
@@ -419,8 +367,7 @@ public:
         }
         return result;
     }
-    int AddData2TrainBuffer(Tensor<DTYPE> *setOfImage, Tensor<DTYPE> *setOfLabel)
-    {
+    int AddData2TrainBuffer(Tensor<DTYPE> *setOfImage, Tensor<DTYPE> *setOfLabel){
         Tensor<DTYPE> **result = new Tensor<DTYPE> *[2];
 
         result[0] = setOfImage;
@@ -431,8 +378,7 @@ public:
         return TRUE;
     }
 
-    int AddData2TestBuffer(Tensor<DTYPE> *setOfImage, Tensor<DTYPE> *setOfLabel)
-    {
+    int AddData2TestBuffer(Tensor<DTYPE> *setOfImage, Tensor<DTYPE> *setOfLabel){
         Tensor<DTYPE> **result = new Tensor<DTYPE> *[2];
 
         result[0] = setOfImage;
@@ -444,8 +390,7 @@ public:
     }
 
     //데이터와 label을 vector에 넣는다.
-    void LoadTrainImage()
-    {
+    void LoadTrainImage(){
         int numOfbatchBlock = NUMBER_OF_TRAIN_IMAGE / m_batchSize;
         Tensor<DTYPE> *preprocessedImages = NULL;
         Tensor<DTYPE> *preprocessedLabels = NULL;
@@ -453,27 +398,21 @@ public:
 
         std::random_shuffle(m_TrainImageIdx.begin(), m_TrainImageIdx.end());
 
-        for (int i = 0; i < numOfbatchBlock; i++)
-        {
-            for (int j = 0; j < m_batchSize; j++)
-            {
-                if (m_TrainImageIdx[i * m_batchSize + j] < NUMBER_OF_O )
-                {
-                    char O_Dir[50] = "./data/O/";
+        for (int i = 0; i < numOfbatchBlock; i++){
+            for (int j = 0; j < m_batchSize; j++){
+                if (m_TrainImageIdx[i * m_batchSize + j] < NUMBER_OF_O){
+                    char O_Dir[50] = "../../../OX/O/";
                     strcat(O_Dir, m_imageNameList[m_TrainImageIdx[i * m_batchSize + j]]);
                     temp = this->Image2Tensor(O_Dir);
                     m_aaSetOfImage->push(temp);
                     m_aaSetOfLabel->push(this->Label2Tensor(1));
-
                 }
-                else
-                {
-                    char X_Dir[50] = "./data/X/";
+                else{
+                    char X_Dir[50] = "../../../OX/X/";
                     strcat(X_Dir, m_imageNameList[m_TrainImageIdx[i * m_batchSize + j]]);
                     temp = this->Image2Tensor(X_Dir);
                     m_aaSetOfImage->push(this->Image2Tensor(X_Dir));
                     m_aaSetOfLabel->push(this->Label2Tensor(0));
-
                 }
             }
             preprocessedImages = this->ConcatenateImage(m_aaSetOfImage);
@@ -483,8 +422,7 @@ public:
         }
     }
 
-    void LoadTestImage()
-    {
+    void LoadTestImage(){
         int numOfbatchBlock = NUMBER_OF_TEST_IMAGE / m_batchSize;
         Tensor<DTYPE> *preprocessedImages = NULL;
         Tensor<DTYPE> *preprocessedLabels = NULL;
@@ -492,27 +430,21 @@ public:
 
         std::random_shuffle(m_TestImageIdx.begin(), m_TestImageIdx.end());
 
-        for (int i = 0; i < numOfbatchBlock; i++)
-        {
-            for (int j = 0; j < m_batchSize; j++)
-            {
-                if (m_TestImageIdx[i * m_batchSize + j] < NUMBER_OF_O )
-                {
-                    char O_Dir[50] = "./data/O/";
+        for (int i = 0; i < numOfbatchBlock; i++){
+            for (int j = 0; j < m_batchSize; j++){
+                if (m_TestImageIdx[i * m_batchSize + j] < NUMBER_OF_O){
+                    char O_Dir[50] = "../../../OX/O/";
                     strcat(O_Dir, m_imageNameList[m_TestImageIdx[i * m_batchSize + j]]);
                     temp = this->Image2Tensor(O_Dir);
                     m_aaSetOfImage->push(temp);
                     m_aaSetOfLabel->push(this->Label2Tensor(1));
-
                 }
-                else
-                {
-                    char X_Dir[50] = "./data/X/";
+                else{
+                    char X_Dir[50] = "../../../OX/X/";
                     strcat(X_Dir, m_imageNameList[m_TestImageIdx[i * m_batchSize + j]]);
                     temp = this->Image2Tensor(X_Dir);
                     m_aaSetOfImage->push(this->Image2Tensor(X_Dir));
                     m_aaSetOfLabel->push(this->Label2Tensor(0));
-
                 }
             }
             preprocessedImages = this->ConcatenateImage(m_aaSetOfImage);
@@ -522,20 +454,17 @@ public:
         }
     }
 
-    void prepareData()
-    {
+    void prepareData(){
         this->LoadTrainImage();
         this->LoadTestImage();
     }
 
-    Tensor<DTYPE> **GetTrainDataFromBuffer()
-    {
+    Tensor<DTYPE> **GetTrainDataFromBuffer(){
         Tensor<DTYPE> **result = m_aaQForTrainData->front();
         m_aaQForTrainData->pop();
         return result;
     }
-    Tensor<DTYPE> **GetTestDataFromBuffer()
-    {
+    Tensor<DTYPE> **GetTestDataFromBuffer(){
         Tensor<DTYPE> **result = m_aaQForTestData->front();
         m_aaQForTestData->pop();
         return result;
