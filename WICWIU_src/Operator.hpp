@@ -830,6 +830,7 @@ template<typename DTYPE> int Operator<DTYPE>::Save(FILE *fp) {
     for (int i = 0; i < size; i++) {
         (*m_aaResult)[i]->Save(fp);
     }
+
     return TRUE;
 }
 

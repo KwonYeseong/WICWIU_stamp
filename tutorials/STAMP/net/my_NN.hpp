@@ -10,10 +10,10 @@ public:
         Operator<float> *out = x;
 
         // ======================= layer 1======================
-        out = new Linear<float>(out, 900, 320, TRUE, "1");
+        out = new Linear<float>(out, 900, 60, TRUE, "1");
         out = new Tanh<float>(out, "Tanh");
 
-        out = new Linear<float>(out, 320, 15, TRUE, "2");
+        out = new Linear<float>(out, 60, 15, TRUE, "2");
         out = new Tanh<float>(out, "Tanh");
         // ======================= layer 2=======================
         out = new Linear<float>(out, 15, 2, TRUE, "3");

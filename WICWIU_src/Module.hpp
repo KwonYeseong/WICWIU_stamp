@@ -169,6 +169,10 @@ template<typename DTYPE> Module<DTYPE>::Module(std::string pName) : Operator<DTY
     m_pLastOperator          = NULL;
     m_idOfDevice             = -1;
 
+    int m_InputDegree        = 0;
+    int m_ParameterDegree    = 0;
+    int m_numOfExcutableOperator = 0;
+
     Alloc();
 }
 
@@ -544,6 +548,7 @@ template<typename DTYPE> int Module<DTYPE>::Save(FILE *fp) {
     for (int i = 0; i < m_ParameterDegree; i++) {
         (*m_apParameter)[i]->Save(fp);
     }
+
     return TRUE;
 }
 

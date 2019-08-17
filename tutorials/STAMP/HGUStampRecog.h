@@ -53,9 +53,9 @@ public:
         // printf("%f %f\n", (*pred)[0], (*pred)[1]);
         
         if((*pred)[0] > (*pred)[1])
-        return 0;
+            return 0;
         else
-        return 1;
+            return 1;
     }
     
     Tensor<float> *BMP2Tensor(int width, int height, unsigned char *gray){
