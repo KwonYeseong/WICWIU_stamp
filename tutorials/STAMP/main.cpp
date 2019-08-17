@@ -174,8 +174,8 @@ int main(int argc, char const *argv[]) {
     Tensorholder<float> *label = new Tensorholder<float>(1, BATCH, 1, 1, 2, "label");
     
     // ======================= Select net ===================
-    // NeuralNetwork<float> *net = new my_CNN(x, label);
-    NeuralNetwork<float> *net = new my_NN(x, label);
+    NeuralNetwork<float> *net = new my_CNN(x, label);
+    // NeuralNetwork<float> *net = new my_NN(x, label);
     // ======================= Prepare Data ===================
     BMPDataSet<float> *dataset = CreatBMPDataSet<float>(BATCH);
     
@@ -186,7 +186,7 @@ int main(int argc, char const *argv[]) {
     Tensor<float> **data = NULL;
     
     // @ When load parameters
-    net->Load(filename);
+    // net->Load(filename);
     
     std::cout << "best_acc : " << best_acc << '\n';
     std::cout << "epoch : " << epoch << '\n';

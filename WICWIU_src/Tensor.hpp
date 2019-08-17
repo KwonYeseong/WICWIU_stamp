@@ -796,7 +796,6 @@ template<typename DTYPE> int Tensor<DTYPE>::Save(FILE *fp) {
 
     m_aLongArray->Save(fp);
 
-
     return TRUE;
 }
 

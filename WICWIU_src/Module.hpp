@@ -169,9 +169,9 @@ template<typename DTYPE> Module<DTYPE>::Module(std::string pName) : Operator<DTY
     m_pLastOperator          = NULL;
     m_idOfDevice             = -1;
 
-    int m_InputDegree        = 0;
-    int m_ParameterDegree    = 0;
-    int m_numOfExcutableOperator = 0;
+    m_InputDegree            = 0;
+    m_ParameterDegree        = 0;
+    m_numOfExcutableOperator = 0;
 
     Alloc();
 }
@@ -526,9 +526,7 @@ template<typename DTYPE> void Module<DTYPE>::SetDeviceCPUOnModule() {
 
 template<typename DTYPE> int Module<DTYPE>::Save(char *nameOfFile) {
     FILE *fp = fopen(nameOfFile, "wb");
-
     this->Save(fp);
-
     fclose(fp);
 
     return TRUE;
@@ -536,11 +534,9 @@ template<typename DTYPE> int Module<DTYPE>::Save(char *nameOfFile) {
 
 template<typename DTYPE> int Module<DTYPE>::Load(char *nameOfFile) {
     FILE *fp = fopen(nameOfFile, "rb");
-
     this->Load(fp);
-
     fclose(fp);
-
+    
     return TRUE;
 }
 
@@ -563,7 +559,7 @@ template<typename DTYPE> int Module<DTYPE>::SaveComponents(char *nameOfDir) {
     char filename[256];
 
     if (access(nameOfDir, 00) == -1) {
-        if (mkdir(nameOfDir,0755) == -1) {
+        if (_mkdir(nameOfDir) == -1) {
             printf("mkdir fail\n");
             exit(-1);
         }

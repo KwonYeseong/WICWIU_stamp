@@ -485,7 +485,6 @@ template<typename DTYPE> int LongArray<DTYPE>::Save(FILE *fp) {
     // char filename[idxOfParameter];
     // sprintf(filename, "%d", idxOfParameter);
     // FILE *fp = fopen(nameOfFile, "wb");
-
     if (!fwrite(&m_CapacityPerTime, sizeof(int), 1, fp)) {
         printf("Failed to write Data from binary file in %s (%s %d)\n", __FUNCTION__, __FILE__, __LINE__);
         exit(-1);

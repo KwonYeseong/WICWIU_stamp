@@ -805,6 +805,7 @@ template<typename DTYPE> int Operator<DTYPE>::SetGradientOnCPU() {
 }
 
 template<typename DTYPE> int Operator<DTYPE>::Save(char *nameOfFile) {
+    std::cout << "저장하자\n";
     FILE *fp = fopen(nameOfFile, "wb");
 
     this->Save(fp);

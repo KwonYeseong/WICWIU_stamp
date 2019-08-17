@@ -81,8 +81,8 @@ $(WICWIU_LIB): $(WICWIU_SRC) $(WICWIU_CUDA_SRCS)
 	make -C ../..
 
 clean:
-	rm -rf *.o main
+	rm -rf *.o main.exe
 
 clean_all:
-	rm -rf *.o main
+	rm -rf *.o main.exe
 	make clean -C ../..
