@@ -152,7 +152,6 @@
 
 
 /* This code for train  */
-
 #include "net/my_CNN.hpp"
 #include "net/my_NN.hpp"
 #include "BMP_Reader.hpp"

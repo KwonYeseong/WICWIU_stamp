@@ -17,8 +17,8 @@ using namespace std;
 #define O_listFile "../../../OX/O/O_list.txt"
 #define X_listFile "../../../OX/X/X_list.txt"
 #define NUMBER_OF_O 1343
-#define NUMBER_OF_X 882
-#define NUMBER_OF_TRAIN_IMAGE 1558
+#define NUMBER_OF_X 881
+#define NUMBER_OF_TRAIN_IMAGE 1557
 #define NUMBER_OF_TEST_IMAGE 667
 #define NUMBER_OF_CHANNEL 1
 #define WIDTH 30
@@ -63,8 +63,7 @@ typedef struct tagRGBQUAD {
 
 #pragma pack(pop)
 
-template <typename DTYPE>
-class BMPDataSet{
+template <typename DTYPE> class BMPDataSet{
 private:
     int m_batchSize;
 
@@ -73,14 +72,12 @@ private:
     vector<int> m_TrainImageIdx;
     vector<int> m_TestImageIdx;
 
-    // batch Tensor << before concatenate
-    queue<Tensor<DTYPE> *> *m_aaSetOfImage; // size : batch size
-    queue<Tensor<DTYPE> *> *m_aaSetOfLabel; // size : batch size
+    queue<Tensor<DTYPE> *> *m_aaSetOfImage; 
+    queue<Tensor<DTYPE> *> *m_aaSetOfLabel; 
 
-    queue<Tensor<DTYPE> *> *m_aaSetOfImageForConcatenate; // size : batch size
-    queue<Tensor<DTYPE> *> *m_aaSetOfLabelForConcatenate; // size : batch size
+    queue<Tensor<DTYPE> *> *m_aaSetOfImageForConcatenate; 
+    queue<Tensor<DTYPE> *> *m_aaSetOfLabelForConcatenate; 
 
-    // Storage for preprocessed Tensor
     queue<Tensor<DTYPE> **> *m_aaQForTrainData; 
     queue<Tensor<DTYPE> **> *m_aaQForTestData;
 
@@ -259,12 +256,33 @@ public:
         fclose(X_fp);
     }
 
+    Tensor<DTYPE> *Resize(Tensor<DTYPE> *input, int newWidth, int newHeight){
+        int oldWidth = input->GetDim(1);
+        int oldHeight = input->GetDim(0);
+        Tensor<DTYPE> *output = Tensor<DTYPE>::Zeros(1, 1, 1, newWidth, newHeight);
+
+        for (int newy = 0; newy < newHeight; newy++) {
+            int oldy = newy * oldHeight / newHeight;
+
+            for (int newx = 0; newx < newWidth; newx++) {
+                int oldx = newx * oldWidth / newWidth;
+
+                (*output)[Index5D(output->GetShape(), 0, 0, 0, newx, newy)]
+                    = (*input)[Index5D(input->GetShape(), 0, 0, 0, oldx, oldy)];
+            }
+        }
+
+        delete input;
+
+        return output;
+    }
+
+
     //image 1개를 읽어드리는
     Tensor<DTYPE> *Image2Tensor(char *imageDir){
         FILE *input;
         unsigned char *bmp;
         long size;
-        Tensor<DTYPE> *temp = Tensor<DTYPE>::Zeros(1, 1, 1, WIDTH, HEIGHT);
 
         input = fopen(imageDir, "rb");
         if (input == NULL){
@@ -276,9 +294,8 @@ public:
         rewind(input);             
 
         bmp = new unsigned char[size]; 
-        int dum = fread(bmp, 1, size, input);    
+        int dummy = fread(bmp, 1, size, input);    
         fclose(input);
-
         
         BITMAPFILEHEADER *bf = (BITMAPFILEHEADER *)bmp;
         BITMAPINFOHEADER *bi = (BITMAPINFOHEADER *)(bmp + sizeof(*bf));
@@ -293,15 +310,14 @@ public:
             printf("Bad file format!");
         }
 
-        
         int w = bi->biWidth;
         if (w % 4)
             w += 4 - bi->biWidth % 4;
 
-        
-        float bmptxt[WIDTH][HEIGHT]; 
+        float bmptxt[bi->biWidth][bi->biHeight]; 
         unsigned char B, G, R;
         int p;
+        Tensor<DTYPE> *temp = Tensor<DTYPE>::Zeros(1, 1, 1, bi->biWidth, bi->biHeight);
 
         // 배열에 저장
         for (int i = 0; i < bi->biHeight; i++){
@@ -312,7 +328,7 @@ public:
                 R = gr[p].rgbRed;
                 bmptxt[i][j] = (((114 * R + 587 * G + 299 * B) / 1000) / 255.0) ;
                 (*temp)[Index5D(temp->GetShape(), 0, 0, 0, j, i)] = bmptxt[i][j];
-                // printf("%.3f ", bmptxt[i][j]);
+                // printf("%.2f ",  bmptxt[i][j]);
             }
             // printf("\n");
         }
@@ -389,14 +405,16 @@ public:
         return TRUE;
     }
 
-    //데이터와 label을 vector에 넣는다.
     void LoadTrainImage(){
         int numOfbatchBlock = NUMBER_OF_TRAIN_IMAGE / m_batchSize;
+        int numOfdrop = NUMBER_OF_TRAIN_IMAGE % m_batchSize;
+
         Tensor<DTYPE> *preprocessedImages = NULL;
         Tensor<DTYPE> *preprocessedLabels = NULL;
         Tensor<DTYPE> *temp = NULL;
 
-        std::random_shuffle(m_TrainImageIdx.begin(), m_TrainImageIdx.end());
+        std::reverse(m_TrainImageIdx.begin(), m_TrainImageIdx.end());
+        std::random_shuffle(m_TrainImageIdx.begin() + numOfdrop, m_TrainImageIdx.end());
 
         for (int i = 0; i < numOfbatchBlock; i++){
             for (int j = 0; j < m_batchSize; j++){
@@ -424,11 +442,13 @@ public:
 
     void LoadTestImage(){
         int numOfbatchBlock = NUMBER_OF_TEST_IMAGE / m_batchSize;
+        int numOfdrop = NUMBER_OF_TEST_IMAGE % m_batchSize;
         Tensor<DTYPE> *preprocessedImages = NULL;
         Tensor<DTYPE> *preprocessedLabels = NULL;
         Tensor<DTYPE> *temp = NULL;
 
-        std::random_shuffle(m_TestImageIdx.begin(), m_TestImageIdx.end());
+        std::reverse(m_TestImageIdx.begin(), m_TestImageIdx.end());
+        std::random_shuffle(m_TestImageIdx.begin() + numOfdrop, m_TestImageIdx.end());
 
         for (int i = 0; i < numOfbatchBlock; i++){
             for (int j = 0; j < m_batchSize; j++){
@@ -472,8 +492,7 @@ public:
 };
 
 template <typename DTYPE>
-BMPDataSet<DTYPE> *CreatBMPDataSet(int batchSize)
-{
+BMPDataSet<DTYPE> *CreatBMPDataSet(int batchSize){
     BMPDataSet<DTYPE> *dataset = new BMPDataSet<DTYPE>(batchSize);
     return dataset;
 }
